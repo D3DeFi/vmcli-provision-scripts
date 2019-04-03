@@ -1,0 +1,10 @@
+[Unit]
+Description=First time provision for VM cloning
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/share/vmcli/firstboot-provision.sh
+
+[Install]
+WantedBy=multi-user.target
