@@ -23,14 +23,12 @@ if [[ $DISTRIBUTION == 'debian' || $DISTRIBUTION == 'ubuntu' ]]
   then
     OSFAMILY='debian'
     INTERFACES_DEST=/etc/network/interfaces
-    NETWORK_SERVICE=networking.service
 fi
 
 if [[ $DISTRIBUTION == 'redhat' || $DISTRIBUTION == 'centos' ]]
   then
     OSFAMILY='redhat'
     INTERFACES_DEST=/etc/sysconfig/network-scripts/ifcfg-$INTERFACE
-    NETWORK_SERVICE=network.service
 fi
 
 # Verify that OS family was properly identified
@@ -64,8 +62,13 @@ if [[ $PROVISION_ENABLED == 'true' ]]
     fi
 
     # Configure interfaces file
-    systemctl stop $NETWORK_SERVICE
     cp $SCRIPT_DIR/templates/network-$OSFAMILY.template $INTERFACES_DEST
+
+    ip address flush dev $INTERFACE
+    ip address add $ADDRESS dev $INTERFACE
+    ip link set $INTERFACE up
+    ip route add default via $GATEWAY
+    ping -c 1 $GATEWAY > /dev/null
 
     # RedHat systems requires an additional information
     if [[ $OSFAMILY == 'redhat' ]]
@@ -83,8 +86,6 @@ if [[ $PROVISION_ENABLED == 'true' ]]
     sed -i "s#\${INTERFACE}#$INTERFACE#g" $INTERFACES_DEST
     sed -i "s#\${ADDRESS}#$ADDRESS#g" $INTERFACES_DEST
     sed -i "s#\${GATEWAY}#$GATEWAY#g" $INTERFACES_DEST
-
-    systemctl start $NETWORK_SERVICE
 
     # Clean up after self & self
     systemctl disable --quiet $SERVICE_FILE
