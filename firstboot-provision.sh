@@ -54,6 +54,9 @@ if [[ $PROVISION_ENABLED == 'true' ]]
     ADDRESS=$(vmtoolsd --cmd "info-get guestinfo.provision.network.address" 2>&1)   
     GATEWAY=$(vmtoolsd --cmd "info-get guestinfo.provision.network.gateway" 2>&1)
 
+    # Save CIDR formatted IP for later ip commands as original may get refromatted
+    ADDRESSCIDR=$ADDRESS
+
     # Verify that parsed IP addresses from extra config are valid
     if [[ ! $ADDRESS =~ $IPREGEXP || ! $GATEWAY =~ $IPREGEXP ]]
       then
@@ -63,12 +66,6 @@ if [[ $PROVISION_ENABLED == 'true' ]]
 
     # Configure interfaces file
     cp $SCRIPT_DIR/templates/network-$OSFAMILY.template $INTERFACES_DEST
-
-    ip address flush dev $INTERFACE
-    ip address add $ADDRESS dev $INTERFACE
-    ip link set $INTERFACE up
-    ip route add default via $GATEWAY
-    ping -c 1 $GATEWAY > /dev/null
 
     # RedHat systems requires an additional information
     if [[ $OSFAMILY == 'redhat' ]]
@@ -86,6 +83,13 @@ if [[ $PROVISION_ENABLED == 'true' ]]
     sed -i "s#\${INTERFACE}#$INTERFACE#g" $INTERFACES_DEST
     sed -i "s#\${ADDRESS}#$ADDRESS#g" $INTERFACES_DEST
     sed -i "s#\${GATEWAY}#$GATEWAY#g" $INTERFACES_DEST
+
+    # Temporarily configure interface with required IP address
+    ip address flush dev $INTERFACE
+    ip address add $ADDRESSCIDR dev $INTERFACE
+    ip link set $INTERFACE up
+    ip route add default via $GATEWAY
+    ping -c 1 $GATEWAY > /dev/null
 
     # Clean up after self & self
     systemctl disable --quiet $SERVICE_FILE
