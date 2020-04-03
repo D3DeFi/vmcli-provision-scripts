@@ -16,7 +16,7 @@ function log_error {
 
 # Gather information about OS distribution and first interface used
 DISTRIBUTION=$(egrep '^ID=' /etc/os-release | sed 's/"//g' | awk -F'=' '{print $2}'| tr '[:upper:]' '[:lower:]')
-INTERFACE=$(ip link | egrep '^[1-9]:' | grep -v lo: | awk '{print $2}' | sed 's/://')
+INTERFACE=$(ip -oneline link | awk '/link\/ether/ {print $2;exit}' | sed 's/://')
 
 # Identify proper os family and define destination for network configuration
 if [[ $DISTRIBUTION == 'debian' || $DISTRIBUTION == 'ubuntu' ]]
